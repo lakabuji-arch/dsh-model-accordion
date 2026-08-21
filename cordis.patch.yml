@@ -1,0 +1,4 @@
+# Persistent local Web client plugin registration.
+- insert:
+    - id: ui-model-accordion
+      name: dsh-model-accordion
