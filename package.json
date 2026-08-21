@@ -56,6 +56,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "check": "node --check lib/client.js && node --check lib/index.js"
+    "check": "node --check lib/client.js && node --check lib/index.js",
+    "test": "node --test tests/"
   }
 }
