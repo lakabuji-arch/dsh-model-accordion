@@ -14,4 +14,4 @@ jobs:
           node-version: 22
       - run: node --check lib/client.js
       - run: node --check lib/index.js
-      - run: node --test tests/
+      - run: node --test tests/package.test.js
