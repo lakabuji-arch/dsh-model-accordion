@@ -38,8 +38,8 @@ Refresh the Web UI after installation. The package declares a `dsh.bundle` patch
 
 - The selector submits the exact provider, model, and catalog-declared reasoning effort returned by the DSH model directory.
 - A selection can still be rejected by the DSH host when the session contains images and the selected model does not declare image input. That is a host/model-capability rule, not a UI override.
-- The optional `识图镜像（带图会话）` section is shown when provider names identify vision-router mirror routes. It is kept collapsed to avoid duplicating every provider in the main list.
-- The plugin currently uses English fallback status text and a Chinese label for the vision-mirror section; full locale integration is planned for a later release.
+- The model search box filters provider lists by name, id, or description while keeping the accordion grouping; a provider group auto-expands while a query is active.
+- The plugin uses English status and search text; full locale integration is planned for a later release.
 
 ## Development checks
 
