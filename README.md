@@ -6,9 +6,8 @@ Provider-folded model selector for the DeepSeek Harness Web composer.
 
 - Replaces the single composer model seat with a provider-folded selector.
 - Keeps provider groups collapsed by default and opens models on demand.
-- Reads reasoning-effort choices from each model's resolved catalog metadata instead of maintaining a hard-coded effort list.
-- Sends model and reasoning-effort selections through DSH's shared model-directory service.
-- Wraps vision-router mirror providers in one collapsed `识图镜像（带图会话）` section when those providers are present.
+- Reads reasoning-effort choices from each model's resolved catalog metadata, with a built-in official-effort table as a fallback. A three-state switch (`自动`/`官方`/`后端`) in the popup, persisted to `localStorage`, picks the source: `auto` (configured/backend efforts win, official table only as a fallback), `official` (always the built-in table), or `backend` (only what the configured catalog declared).
+- Sends model and reasoning-effort selections through DSH's shared model-directory service; a picked effort the model does not genuinely support is dropped so the request uses the model's default instead of failing with `UNSUPPORTED_REASONING_EFFORT`.
 - Keeps the popup height-bounded with an internal scroll area and wraps effort controls below the model name.
 - Uses DSH semantic theme tokens for colors and supports light/dark theme changes.
 
@@ -36,9 +35,11 @@ Refresh the Web UI after installation. The package declares a `dsh.bundle` patch
 
 ## Behavior and limitations
 
-- The selector submits the exact provider, model, and catalog-declared reasoning effort returned by the DSH model directory.
+- The selector submits the exact provider, model, and reasoning effort returned by the DSH model directory, filtered by the active effort-source mode.
+- A picked reasoning effort that the model does not support is silently dropped so the request falls back to the model's default (no `UNSUPPORTED_REASONING_EFFORT` error). In `official` mode this means a relay/gateway model configured without an effort level keeps the model but does not force an unsupported level.
 - A selection can still be rejected by the DSH host when the session contains images and the selected model does not declare image input. That is a host/model-capability rule, not a UI override.
 - The model search box filters provider lists by name, id, or description while keeping the accordion grouping; a provider group auto-expands while a query is active.
+- The built-in official-effort table keys on the model's name/id and reflects each vendor's public API docs (GPT-5.6 six levels, GLM-5.3 / kimi-k3 max/high/low, GLM / deepseek-v4 / kimi-k2 high/max, deepseek-v4-pro-0813 / flash-0731 max/high/low, qwen3.8 xhigh/medium/low, grok low/high). Unmatched models offer only the efforts their configured catalog declares.
 - The plugin uses English status and search text; full locale integration is planned for a later release.
 
 ## Development checks

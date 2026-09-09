@@ -1,6 +1,6 @@
 {
   "name": "dsh-model-accordion",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Provider-folded model selector for the DSH Web composer with catalog-driven reasoning effort choices.",
   "keywords": [
     "deepseek-harness",
