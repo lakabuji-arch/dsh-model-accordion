@@ -14,16 +14,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   flash-0731 max/high/low, qwen3.8 xhigh/medium/low, grok low/high) even when a
   configured relay/gateway model declares no `reasoningEfforts` — the common
   npm-install case where the backend catalog is empty.
-- A three-state effort-source switch in the popup, persisted to `localStorage`:
-  `auto` (backend-declared efforts win, official table only as a fallback),
-  `official` (always use the built-in table), and `backend` (only what the
-  configured catalog declared). Default is `auto`, which respects a user's own
-  configured effort levels when present.
 
 ### Changed
 
-- Effort choices, default effort, and the composer trigger caption are resolved
-  through the active effort-source mode instead of reading the backend field alone.
+- Effort handling is a single "auto" rule: a model's configured/backend-declared
+  efforts are used when present, and the built-in official table is used only as
+  a fallback. A user who configured their own per-model levels keeps them; an
+  unconfigured model still receives sensible official choices. No mode switch UI
+  is exposed — this one rule is all that is needed.
 - Submit path now degrades gracefully: a picked "official" effort the model does
   not genuinely support (e.g. a relay model configured without that level) is
   dropped so the request uses the model's default rather than failing with
