@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.2.1] - 2026-09-10
+
+### Added
+
+- Official-effort coverage for DeepSeek V4.1 Flash (`deepseek-flash` /
+  `deepseek-v4.1-*`): `low / high / max`, default `high` (sourced from DeepSeek's
+  2026-09-10 release notes and Thinking Mode docs). The new canonical
+  `deepseek-flash` name was previously unmatched by the table, which keyed only
+  on `deepseek-v4`.
+
 ## [0.2.0] - 2026-09-09
 
 ### Added
