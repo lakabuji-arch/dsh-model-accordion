@@ -1,7 +1,7 @@
 {
   "name": "dsh-model-accordion",
-  "version": "0.2.1",
-  "description": "Provider-folded model selector for the DSH Web composer with catalog-driven reasoning effort choices.",
+  "version": "0.4.0",
+  "description": "Provider-folded model selector for the DSH Web composer.",
   "keywords": [
     "deepseek-harness",
     "dsh",
@@ -37,6 +37,7 @@
     "lib",
     "cordis.patch.yml",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "package.json"
   ],
@@ -57,6 +58,6 @@
   },
   "scripts": {
     "check": "node --check lib/client.js && node --check lib/index.js",
-    "test": "node --test tests/package.test.js"
+    "test": "node --test tests/package.test.js tests/render.test.js tests/host.test.js"
   }
 }

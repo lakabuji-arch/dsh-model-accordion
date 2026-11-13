@@ -1,23 +1,44 @@
 # dsh-model-accordion
 
-Provider-folded model selector for the DeepSeek Harness Web composer.
+Provider-folded model selector for the DeepSeek Harness (dsh) Web composer.
 
 ## What it does
 
-- Replaces the single composer model seat with a provider-folded selector.
-- Keeps provider groups collapsed by default and opens models on demand.
-- Reads reasoning-effort choices from each model's resolved catalog metadata, with a built-in official-effort table as a fallback. A single automatic rule applies: a model with configured/backend-declared efforts uses them, and an unconfigured model falls back to the built-in official table. A user who configured their own levels keeps them; no per-model effort configuration is needed for the official fallback to work.
-- Sends model and reasoning-effort selections through DSH's shared model-directory service; a picked effort the model does not genuinely support is dropped so the request uses the model's default instead of failing with `UNSUPPORTED_REASONING_EFFORT`.
-- Keeps the popup height-bounded with an internal scroll area and wraps effort controls below the model name.
-- Uses DSH semantic theme tokens for colors and supports light/dark theme changes.
+- Replaces the composer model seat (`conversation.input.model`) with a provider-folded selector:
+  provider groups stay collapsed until opened, and the provider holding the current model opens
+  on a fresh menu.
+- Keeps the `0.2.1` seat contract: same seat name, same `inject` face
+  (`available` / `directory` / `load` / `select`), same raw `RemoteResult` handling.
+- **Reasoning effort.** Picking a model submits its catalog-declared default effort; the trigger
+  and every model row show the active level; a cell in the menu drills into the levels the model
+  actually declares. There is no client-owned effort table, so an undeclared level is never offered.
+- **Label child seat.** The seat declares `conversation.input.model.label` and renders it through
+  `renderSlot()`, so the official `1017` badge — and any other plugin that decorates model names —
+  keeps working instead of being bypassed.
+- The popup is portaled to `document.body` and positioned with fixed coordinates clamped to the
+  viewport, so composer overflow cannot clip it; it follows page scroll and resize.
+- Directory `failures` are listed per provider with a retry action, and the catalog error is shown
+  as `模型操作失败：…`; a `session/writer-held` rejection gets the dedicated "session already in use"
+  message instead of a raw error.
+- Search is available at every catalog size (the `0.2.x` behaviour) and ranks by ordered-subsequence
+  match on the model **name** only — descriptions and ids are excluded so prose cannot drag
+  unrelated models into the result list.
+- Uses DSH semantic theme tokens (light/dark) and a built-in `model-accordion` locale dictionary
+  (`zh` + `en`) registered on the client locale service and named on the seat.
+- Honours a catalog model's `badge` (`{ tone, text }`) the way the official seat does — before the
+  name on the trigger, after it in the menu — and localizes its text through `resolveText` when the
+  seat injects one.
 
 ## Requirements
 
-- DeepSeek Harness Web `0.1.0-rc.8` or newer.
+- DeepSeek Harness Web `0.2.x` (verified against `0.2.2-rc.1`; the seat shape is unchanged from
+  `0.2.1-rc.2`).
 - A Web profile with the official model-selection package and model-directory service.
 - React 18 supplied by the DSH Web runtime.
 
-This is a Web UI plugin. It does not add a Host service, model provider, vision backend, or model catalog. Provider availability and image-session admission remain controlled by DSH and any installed provider/vision plugins.
+This is a Web UI plugin. It does not add a Host service, model provider, vision backend, or model
+catalog. Provider availability and image-session admission remain controlled by DSH and any
+installed provider/vision plugins.
 
 ## Install from a package or repository
 
@@ -31,59 +52,88 @@ For a local checkout during development:
 dsh plugin --profile web add file:/absolute/path/to/dsh-model-accordion
 ```
 
-Refresh the Web UI after installation. The package declares a `dsh.bundle` patch and a Web client entry, so it is installed and loaded as a persistent profile bundle rather than a temporary runtime extension.
+Refresh the Web UI after installation. The package declares a `dsh.bundle` patch and a Web client
+entry, so it is installed and loaded as a persistent profile bundle rather than a temporary runtime
+extension.
 
-## Customizing reasoning effort for a model
+## Configuring reasoning levels
 
-DSH persists model/provider configuration in your main `settings.yaml`, and this
-plugin reads the same resolved model metadata the backend produces, so
-**declared/backend effort configuration always wins over the built-in table**.
-The effective priority is:
+The selector never invents levels: it renders exactly what the model's catalog entry declares, and
+that declaration lives in the **DSH profile config**, not in this plugin.
 
-    model's configured `reasoningEfforts`  >  provider-level default  >  built-in official table
+For `llm-pi-ai` (relay / custom) models the declaration is `reasoningEfforts` in the profile patch:
 
-To give a specific model — for one your relay exposes under a name this plugin's
-table does not know — your own effort ladder, declare it on that model in
-`settings.yaml` and the plugin uses exactly those levels:
-
+```yaml
+- id: llm-pi-ai
+  config:
     providers:
-      my-relay:
-        api: openai-completions
-        baseURL: https://…
+      company:
         models:
-          - id: my-unknown-model
-            api: openai-completions
-            contextWindow: 200000
-            maxTokens: 32000
-            input: [text]
+          - id: deepseek-flash
             reasoningEfforts:
-              off: null      # optional: lets the user turn thinking off
               low: low
               high: high
-              max: max
+              max: ultra        # key = DSH level, value = wire value sent upstream
+```
 
-The exact fields follow `dsh-llm-pi-ai`'s model schema (see that package's
-docs); `reasoningEfforts` maps each offered level to its wire spelling, and you
-may set a provider-level default with the `reasoning:` key. Because this lives
-in your DSH settings file, an agent — or you — can edit it with the file tools
-and DSH reloads it on save; the browser never sees your API key or relay URL.
+Rules:
+
+- The **key** must be one of DSH's thinking levels: `off`, `minimal`, `low`, `medium`, `high`,
+  `xhigh`, `max`. Any other key fails the whole `llm-pi-ai` schema validation, and **every provider
+  under that plugin disappears from the picker** (a `turbo:` key does exactly that).
+- The **value** is the string sent upstream and may be anything the gateway accepts — including a
+  level DSH has no name for. `max: ultra` shows **Max** in the picker and sends `ultra`.
+- Mapping works the other way too: `off: none` turns DSH's **Off** into the gateway's `none`.
+- A level you omit is pinned to *unsupported* (pi-ai receives `null`), so the picker will not offer
+  it; `reasoningEfforts: false` declares a non-reasoning model.
+- The default shown by the picker comes from the adapter's `defaultEffort`. When the adapter declares
+  none, the picker shows `Default` and the request carries no effort (the provider decides).
+
+### 中文说明
+
+选择器里的挡位**不是插件写死的**，而是读 DSH 配置里模型声明的 `reasoningEfforts`：
+
+- **键**必须是 DSH 认识的七个之一：`off / minimal / low / medium / high / xhigh / max`。
+  写成别的（比如 `turbo`）会让整个 `llm-pi-ai` 配置校验失败，**该插件下所有 provider 会一起消失**。
+- **值**是真正发给上游的字符串，随便写。上游有、DSH 没有的挡位就用「映射」：
+  `max: ultra` —— UI 上显示 **Max**，实际发 `ultra`。
+- 反过来也行：`off: none` —— UI 上的 **Off** 发 `none`。
+- 没写的挡位会被标成「不支持」，选择器不会显示；`reasoningEfforts: false` 表示这个模型不支持推理。
+- 默认挡位来自适配器的 `defaultEffort`；适配器没声明时显示 `Default`，请求里不带挡位（由网关决定）。
 
 ## Behavior and limitations
 
-The selector submits the exact provider, model, and reasoning effort returned by the DSH model directory (configured efforts first, built-in official table as fallback).
-- A picked reasoning effort that the model does not support is silently dropped so the request falls back to the model's default (no `UNSUPPORTED_REASONING_EFFORT` error). A relay/gateway model configured without an effort level keeps the model but does not force an unsupported level.
-- A selection can still be rejected by the DSH host when the session contains images and the selected model does not declare image input. That is a host/model-capability rule, not a UI override.
-- The model search box filters provider lists by name, id, or description while keeping the accordion grouping; a provider group auto-expands while a query is active.
-- The built-in official-effort table keys on the model's name/id and is cross-checked against the installed pi-ai catalog and each vendor's API docs. It covers only models whose vendors expose a real effort ladder: GPT-5.6 (full ladder incl. `max`), gpt-5.2+ (`xhigh`), gpt-5.1, gpt-5/mini/nano, o1/o3/o4, gpt-oss, Grok 4.x, GLM-5.3 (`low/high/max`) and GLM-5.2+ (`xhigh/max`), DeepSeek-V4 (`low/high/max`), DeepSeek-V4.1-Flash (`deepseek-flash` / `deepseek-v4.1-*`, `low/high/max`), Kimi K3, Qwen3.8, Gemini 3+ (`low/high`), Claude 4.6+ adaptive, Gemma 4. Families whose native control is not an effort ladder (Gemini 2.5 / Claude ≤4.5 token budgets, GLM ≤5.1 / Kimi K2 / MiniMax / Mistral thinking switches, Qwen open-source, DeepSeek ≤V3) are deliberately excluded. Unmatched models offer only the efforts their configured catalog declares — see "Customizing reasoning effort for a model" to add your own.
-- The plugin uses English status and search text; full locale integration is planned for a later release.
+- The seat registers with `priority: -1` so it sits in front of the official picker instead of
+  rendering next to it.
+- A subagent-addressed session renders nothing (the official seat does the same); a locked composer
+  disables the trigger.
+- Selection rejections render as an in-menu strip rather than the shared composer toast, so the
+  plugin stays dependency-free on DSH UI primitives.
+- Effort is only offered where the catalog declares it: a relay model without `reasoning` metadata
+  shows no effort control, and the request keeps the provider default (shown as `Default`).
+- An effort the model no longer declares is never sent blindly: the seat shows — and once
+  re-selects — the model default (falling back to the first declared level), and a selection the
+  host rejects with `UNSUPPORTED_REASONING_EFFORT` is retried once with that fallback.
+- If the **upstream** rejects the effort (the catalog declaration is a client-side promise, not a
+  gateway guarantee), the host half hooks `agent/request-error`, drops the pinned effort to the
+  provider default for the same provider/model, and replaces the raw gateway body with an error
+  that says what happened and which `reasoningEfforts` declaration to fix; the seat shows the same
+  notice. The turn is not resent on its own: the loop retries with the selection frozen at step
+  start, so a mid-turn switch cannot reach the wire — resend the message after the switch.
+- Search input is retained across menu opens; clearing it collapses the accordion back to the
+  provider holding the current model.
 
 ## Development checks
 
 ```sh
 node --check lib/client.js
 node --check lib/index.js
+node --test tests/package.test.js tests/render.test.js
 npm pack --dry-run --ignore-scripts
 ```
+
+`tests/render.test.js` executes the shipped bundle against a small hook runtime, so the component
+body, store handling, child-seat rendering and menu structure are covered without a browser.
 
 ## License
 
