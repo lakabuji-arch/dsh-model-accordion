@@ -52,7 +52,7 @@ function installDocument() {
   };
 }
 
-function applyWith(snapshot) {
+function applyWith(snapshot, options = {}) {
   installDocument();
   const react = createReact();
   let spec = null;
@@ -90,6 +90,7 @@ function applyWith(snapshot) {
     },
     modelDirectories: {
       directoryFor() {
+        if (options.directoryThrows === true) throw new Error("resolver exploded");
         return {
           store: { subscribe() {}, getSnapshot() { return snapshot; } },
           load: async () => {},
@@ -380,6 +381,20 @@ test("a pinned effort the catalog dropped falls back to a declared level", () =>
   assert.doesNotMatch(rendered, /medium/);
   const levels = elements(tree, (node) => node.props.role === "menuitemradio");
   assert.equal(levels.filter((node) => node.props["aria-checked"] === true).length, 1);
+});
+
+test("a directory failure is tagged and rethrown so the host can fall back", () => {
+  const logs = [];
+  const original = console.error;
+  console.error = (...args) => { logs.push(args); };
+  try {
+    const { registered } = applyWith(baseSnapshot(), { directoryThrows: true });
+    assert.throws(() => registered.slot.spec.inject("session-1"), /resolver exploded/);
+    assert.equal(logs.length, 1);
+    assert.match(String(logs[0][0]), /dsh-model-accordion: model directory unavailable/);
+  } finally {
+    console.error = original;
+  }
 });
 
 test("host translations win over the built-in dictionary", () => {

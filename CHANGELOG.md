@@ -37,6 +37,11 @@ Stays on `0.x` because the plugin's compatibility contract is the DSH seat, and 
   the loop retries with the selection frozen when the step started, and the `agent/request`
   waterfall refuses to change it, so a mid-turn effort switch could never reach the wire.
   The client seat notices the selection change and shows the same notice.
+- A directory-resolver failure inside the seat factory is tagged
+  (`dsh-model-accordion: model directory unavailable …`) and rethrown, keeping the slot host's
+  fallback to the official picker while making a vanished seat searchable in the console. The seat
+  also declares `remote` / `remote.session` as inject dependencies, which is the access a resolver
+  touching the caller context would need.
 - Provider order matching the official pickers: `deepseek-account`, `deepseek-official`, then
   catalog order.
 - `0.2.2` catalog parity: a model's `badge` (`{ tone, text }`) renders before the name on the

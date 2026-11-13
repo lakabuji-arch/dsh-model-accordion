@@ -105,6 +105,10 @@ Rules:
 
 - The seat registers with `priority: -1` so it sits in front of the official picker instead of
   rendering next to it.
+- The seat factory declares `remote` / `remote.session` next to the services it uses, and a
+  directory-resolver failure is tagged (`dsh-model-accordion: model directory unavailable …`) before
+  it is rethrown, so the slot host still falls back to the official picker while the console keeps a
+  searchable reason instead of a bare "slot entry crashed".
 - A subagent-addressed session renders nothing (the official seat does the same); a locked composer
   disables the trigger.
 - Selection rejections render as an in-menu strip rather than the shared composer toast, so the

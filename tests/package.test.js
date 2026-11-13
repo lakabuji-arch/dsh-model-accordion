@@ -69,6 +69,13 @@ test("both locales declare the same keys, covering every tr() call", () => {
   for (const key of used) assert.ok(zh.includes(key), `tr("${key}") is declared in the dictionary`);
 });
 
+test("inject declares the remote faces a directory resolver may touch", () => {
+  const client = clientSource();
+  assert.match(client, /const inject = \[[^\]]*"remote"/);
+  assert.match(client, /const inject = \[[^\]]*"remote\.session"/);
+  assert.match(client, /dsh-model-accordion: model directory unavailable/);
+});
+
 test("seat keeps the priority override and declares the label child seat", () => {
   const client = clientSource();
   assert.match(client, /priority: -1/);
